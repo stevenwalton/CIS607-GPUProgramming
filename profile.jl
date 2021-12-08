@@ -2,7 +2,7 @@ using CUDA
 using Test
 using BenchmarkTools
 
-N = 2^20;
+N = 2^10;
 x_d = CUDA.fill(1.0f0, N);
 y_d = CUDA.fill(2.0f0, N);
 
@@ -60,4 +60,7 @@ function bench_gpu3!(y, x)
     end
 end
 
-CUDA.@profile bench_gpu3!(y_d, x_d)
+#CUDA.@profile bench_gpu3!(y_d, x_d)
+#gpu_add1!(y_d, x_d)
+#gpu_add2!(y_d, x_d)
+gpu_add3!(y_d, x_d)
