@@ -1,1 +1,4 @@
 *.sw?
+*.aux
+*.log
+*.out

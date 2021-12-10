@@ -82,83 +82,6 @@ function get_error_cuda!(error, solution, input, step)
     return nothing
 end
 
-function test_cuda!(h, x0, eps)
-    N = Integer(1 / h + 1)
-    m = N - 2
-    #x0 = zeros(m)
-    #x_host = 0:h:1
-    #x = x_host |> cu
-    #exact = sin.(pi * (x_host))
-    return nothing
-end
-
-
-function cuda_poisson!(h, eps)
-    @show "Entering cuda poisson"
-    N = Integer(1/h + 1) # Total number of nodes
-    m = N - 2 # total interior nodes
-    x0 = CUDA.zeros(m)
-    x_host = 0:h:1
-    #x = x_host |> cu
-    exact = sin.(pi* (0:h:1))
-
-    A = CUDA.zeros(m, m)
-    @cuda threads=256 fillA!(A, h)
-    #@cuda fillA!(A, h)
-    #@show "Filled A"
-
-    ## make vector b
-    #b_host = zeros(m)
-    #for i = 1:m
-    #    b_host[i] =  pi^2 * sin(pi * x_host[i]) 
-    #end
-    #b = b_host |> cu
-    #@show "Made b"
-    #
-
-    ## Make sure everything is caught up
-    #synchronize()
-
-    #@show "Made it to conj grad"
-    #u_int = conj_grad_cuda(A, x0, b, eps, N^2)
-
-    ## Make sure everything is caught up
-    #synchronize()
-
-    #error = get_error(exact, u_int, h)
-
-    ### Half
-    ##hd2 = h/2
-    ##N_half = Integer(1 / hd2 + 1)
-    ##m_half = N_half - 2
-    ##x0_half = CUDA.zeros(m_half)
-    ##x_half = CuArray{Float64}(0:hd2:1)
-    ##exact_half = sin.(pi * (0:hd2:1))
-    ##A_half = CUDA.zeros(m_half, m_half)
-    ###@cuda threads=256 fillA!(A_half, m)
-    ##@cuda threads=256 fillA!(m_half, h_half)
-
-    ### make vector b
-    ###b_half = CuArray{Float64}(undef, m_half)
-    ##b_host = zeros(m_half)
-    ##for i = 1:m_half
-    ##    b_host[i] =  pi^2 * sin(pi * x_half[i]) 
-    ##end
-    ##b_half = b_host |> cu
-    ### Make sure everything is caught up
-    ##synchronize()
-
-    ##u_int_half = conj_grad_cuda(A_half, x0_half, b_half, eps, N_half^2)
-
-    ### Make sure everything is caught up
-    ##synchronize()
-
-    ##error_half = get_error(exact_half, u_int_half, hd2)
-
-    ##@printf "%f\t %f\t %f\t %f\n" h error (error/error_half) log2(error)
-    return nothing
-end
-
 eps = 1e-9
 h_list = [0.1, 0.05, 0.025, 0.0125]
 
@@ -177,7 +100,7 @@ end
         m = N-2
         x0 = CUDA.zeros(m)
         x_host = 0:h:1
-        #x = x_host |> cu
+        x = x_host |> cu
         exact = sin.(pi * x_host)
         A = CUDA.zeros(m, m)
         @cuda fillA!(A, h)
@@ -187,7 +110,20 @@ end
         end
         b = b_host |> cu
         synchronize()
-        conj_grad_cuda!(A, x0, b, CuArray([eps]), N^2)
+        #A_host = zeros(m, m)
+        #for i = 1:m
+        #    A_host[i, i] = 2/h^2
+        #end
+        #for i = 1:m-1
+        #    A_host[i, i+1] = -1/h^2
+        #    A_host[i+1, i] = -1/h^2
+        #end
+        dummy = CUDA.zeros(m)
+        #@cuda threads=128 blocks=32 knl_gemv!(dummy, A, x)
+        #dummy2 = zeros(m)
+        #gemv!(dummy2, A_host, x_host)
+        #@show all((Array(dummy) - dummy2) .< 0.000000001)
+        conj_grad_cuda!(A, x0, b, CuArray([eps]), N^2, dummy)
         error = get_error(exact, Array(x0), h)
 
         # half calculation
@@ -206,7 +142,8 @@ end
         end
         b = b_host |> cu
         synchronize()
-        conj_grad_cuda!(A, x0_half, b, CuArray([eps]), N^2)
+        dummy_half = CUDA.zeros(m)
+        conj_grad_cuda!(A, x0_half, b, CuArray([eps]), N^2, dummy_half)
         error_half = get_error(exact, Array(x0_half), h_half)
         @printf "%f\t %f\t %f\t %f\n" h error (error/error_half) log2(error)
     end

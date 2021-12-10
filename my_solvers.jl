@@ -37,8 +37,40 @@ function norm_cuda!(err, x)
     return nothing
 end
 
-function conj_grad_cuda!(A, x, b, epsilon, iter_max)
-    r = b - A * x
+function gemv!(y, A, x)
+
+    N = length(y)
+
+    for i = 1:N
+        for k = 1:N
+            y[i] += A[i, k]*x[k]
+        end
+    end
+end
+
+function knl_gemv!(y, A, x)
+
+    N = length(y)
+
+    bid = blockIdx().x  # get the thread's block ID
+    tid = threadIdx().x # get my thread ID
+    dim = blockDim().x  # how many threads in each block
+
+    i = dim * (bid - 1) + tid #unique global thread ID
+        if i <= N
+            for k = 1:N
+                y[i] += A[i, k]*x[k]
+            end
+        end
+    return nothing
+end
+
+function conj_grad_cuda!(A, x, b, epsilon, iter_max, dummy)
+    threads_pb=32
+    num_blocks = 5#cld(N, threads)
+    @cuda threads=threads_pb blocks=num_blocks knl_gemv!(dummy, A, x)
+    #r = b - A * x
+    r = b - dummy
     err = CuArray([0.])
     @cuda norm_cuda!(err, r)
     err2 = CuArray([0.])
@@ -49,7 +81,9 @@ function conj_grad_cuda!(A, x, b, epsilon, iter_max)
     p = copy(r)
     for k = 1:iter_max
         r_old = copy(r)
-        alpha = (r' * r) / (p' * A * p)
+        #alpha = (r' * r) / (p' * A * p)
+        @cuda threads=threads_pb blocks=num_blocks knl_gemv!(dummy, A, p)
+        alpha = (r' * r) / (p' * dummy)
         x .= x + alpha * p
         @cuda norm_cuda!(err, r)
         @cuda norm_cuda!(err2, x)
