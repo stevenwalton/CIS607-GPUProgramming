@@ -315,6 +315,14 @@ $265.980$ MiB
 %  solutions.\label{tab:error}}
 \end{table}
 
+Included in graph~\ref{fig:cpu} is the convergence graphs for the CPU code. Note
+that we have inverted the x-axis for easier interpretation.
+\begin{figure}
+    \includegraphics[width=\textwidth]{"CPU.png"}
+    \caption{Graphs for CPU code}
+    \label{fig:cpu}
+\end{figure}
+
 \section{GPU Functionality (bonus!)}
 
 Add GPU functionality to the conjugate gradient method in part 1. Time the GPU
@@ -510,5 +518,14 @@ matrices and then converting A to a different format.
 %  \caption{Error and convergence rates using the method of manufactured
 %  solutions.\label{tab:error}}
 \end{table}
+
+The graph~\ref{fig:gpu} shows that the code may be diverging rather than converging. This is
+unfortunately not what we want.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{"GPU.png"}
+    \caption{Graphs for GPU code}
+    \label{fig:gpu}
+\end{figure}
 
 \end{document}
